@@ -1,0 +1,218 @@
+sql/orphan_keys.sql
+
+-- ==============================================================================
+-- GASTROCORE ERP v0.3.0 - SPRINT 1 (RESPONSÁVEL 01)
+-- Arquivo: sql/orphan_keys.sql
+-- Regra: DQ-05 (Integridade Referencial / Zero Chaves Órfãs)
+-- Contrato de saída: compatível com data_quality_gate.py (Integrante 5)
+-- ==============================================================================
+
+WITH orphan_checks AS (
+
+    -- ==========================================================================
+    -- BLOCO A: FKs FORMAIS (definidas com REFERENCES no schema.sql)
+    -- ==========================================================================
+
+    -- 1. ingredients.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05'::TEXT AS rule_id,
+        'ingredients'::TEXT AS source,
+        f.id::TEXT AS record_id,
+        'unit_id'::TEXT AS field,
+        f.unit_id::TEXT AS actual_value,
+        'Existir em kitchen_units(id)'::TEXT AS expected_value,
+        format('Chave órfã em ingredients.unit_id: %L não existe em kitchen_units.id', f.unit_id) AS message,
+        'erro'::TEXT AS status
+    FROM ingredients f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 2. daily_menu_plans.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'daily_menu_plans',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em daily_menu_plans.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM daily_menu_plans f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 3. hot_box_deliveries.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'hot_box_deliveries',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em hot_box_deliveries.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM hot_box_deliveries f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 4. proposal_quotes.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'proposal_quotes',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em proposal_quotes.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM proposal_quotes f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 5. app_users.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'app_users',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em app_users.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM app_users f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 6. temperature_logs.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'temperature_logs',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em temperature_logs.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM temperature_logs f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 7. kds_dish_status.unit_id -> kitchen_units.id
+    SELECT
+        'DQ-05',
+        'kds_dish_status',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã em kds_dish_status.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM kds_dish_status f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- ==========================================================================
+    -- BLOCO B: FKs IMPLÍCITAS (sem REFERENCES no DDL - risco crítico real)
+    -- ==========================================================================
+
+    -- 8. waste_records.unit_id -> kitchen_units.id (sem FK no schema!)
+    SELECT
+        'DQ-05',
+        'waste_records',
+        f.id::TEXT,
+        'unit_id',
+        f.unit_id::TEXT,
+        'Existir em kitchen_units(id)',
+        format('Chave órfã (sem FK formal) em waste_records.unit_id: %L não existe em kitchen_units.id', f.unit_id),
+        'erro'
+    FROM waste_records f
+    LEFT JOIN kitchen_units p ON f.unit_id = p.id
+    WHERE p.id IS NULL AND f.unit_id IS NOT NULL
+
+    UNION ALL
+
+    -- 9. stock_movements.ingredient_id -> ingredients.id (sem FK no schema!)
+    SELECT
+        'DQ-05',
+        'stock_movements',
+        f.id::TEXT,
+        'ingredient_id',
+        f.ingredient_id::TEXT,
+        'Existir em ingredients(id)',
+        format('Chave órfã (sem FK formal) em stock_movements.ingredient_id: %L não existe em ingredients.id', f.ingredient_id),
+        'erro'
+    FROM stock_movements f
+    LEFT JOIN ingredients p ON f.ingredient_id = p.id
+    WHERE p.id IS NULL AND f.ingredient_id IS NOT NULL
+
+    UNION ALL
+
+    -- 10. kds_dish_status.recipe_id -> technical_sheets.id (sem FK no schema!)
+    SELECT
+        'DQ-05',
+        'kds_dish_status',
+        f.id::TEXT,
+        'recipe_id',
+        f.recipe_id::TEXT,
+        'Existir em technical_sheets(id)',
+        format('Chave órfã (sem FK formal) em kds_dish_status.recipe_id: %L não existe em technical_sheets.id', f.recipe_id),
+        'erro'
+    FROM kds_dish_status f
+    LEFT JOIN technical_sheets p ON f.recipe_id = p.id
+    WHERE p.id IS NULL AND f.recipe_id IS NOT NULL
+
+    UNION ALL
+
+    -- ==========================================================================
+    -- BLOCO C: REFERÊNCIAS IMPLÍCITAS EM ARRAYS (TEXT[])
+    -- ==========================================================================
+
+    -- 11. daily_menu_plans.*_ids -> technical_sheets.id
+    SELECT
+        'DQ-05',
+        'daily_menu_plans',
+        f.id::TEXT,
+        a.col_name::TEXT,
+        a.ref_id::TEXT,
+        'Existir em technical_sheets(id)',
+        format('Chave órfã em array daily_menu_plans.%s: %L não existe em technical_sheets.id', a.col_name, a.ref_id),
+        'erro'
+    FROM daily_menu_plans f
+    CROSS JOIN LATERAL (
+        SELECT 'principais_ids' AS col_name, unnest(f.principais_ids) AS ref_id
+        UNION ALL SELECT 'guarnicoes_ids', unnest(f.guarnicoes_ids)
+        UNION ALL SELECT 'bases_ids',      unnest(f.bases_ids)
+        UNION ALL SELECT 'saladas_ids',    unnest(f.saladas_ids)
+        UNION ALL SELECT 'molhos_ids',     unnest(f.molhos_ids)
+        UNION ALL SELECT 'sobremesas_ids', unnest(f.sobremesas_ids)
+        UNION ALL SELECT 'bebidas_ids',    unnest(f.bebidas_ids)
+        UNION ALL SELECT 'dietas_ids',     unnest(f.dietas_ids)
+    ) a
+    LEFT JOIN technical_sheets p ON a.ref_id = p.id
+    WHERE p.id IS NULL AND a.ref_id IS NOT NULL
+)
+SELECT
+    rule_id,
+    source,
+    record_id,
+    field,
+    actual_value,
+    expected_value,
+    message,
+    status
+FROM orphan_checks
+ORDER BY source, field, record_id;

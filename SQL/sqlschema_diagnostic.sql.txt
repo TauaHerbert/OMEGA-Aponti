@@ -1,0 +1,105 @@
+sql/schema_diagnostic.sql
+
+-- ==============================================================================
+-- GASTROCORE ERP v0.3.0 - SPRINT 1 (RESPONSÁVEL 01)
+-- Arquivo: sql/schema_diagnostic.sql
+-- Objetivo: Diagnóstico estrutural completo das 13 tabelas no schema public
+-- ==============================================================================
+
+-- 1. Inventário de tabelas (deve retornar 13 tabelas)
+SELECT
+    table_schema,
+    table_name,
+    table_type
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+
+-- 2. Mapeamento de colunas, tipos, nulabilidade e valores padrão
+SELECT
+    table_name,
+    ordinal_position AS pos,
+    column_name,
+    data_type,
+    udt_name,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+ORDER BY table_name, ordinal_position;
+
+-- 3. Chaves Primárias (PK) e Restrições UNIQUE
+SELECT
+    tc.table_name,
+    tc.constraint_type,
+    tc.constraint_name,
+    kcu.column_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+    ON tc.constraint_name = kcu.constraint_name
+   AND tc.table_schema = kcu.table_schema
+WHERE tc.table_schema = 'public'
+  AND tc.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+ORDER BY tc.table_name, tc.constraint_type, kcu.ordinal_position;
+
+-- 4. Chaves Estrangeiras Formais (FK) e regras de exclusão (ON DELETE)
+SELECT
+    tc.table_name AS child_table,
+    kcu.column_name AS child_column,
+    ccu.table_name AS parent_table,
+    ccu.column_name AS parent_column,
+    rc.delete_rule,
+    tc.constraint_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+    ON tc.constraint_name = kcu.constraint_name
+   AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage ccu
+    ON ccu.constraint_name = tc.constraint_name
+   AND ccu.table_schema = tc.table_schema
+JOIN information_schema.referential_constraints rc
+    ON rc.constraint_name = tc.constraint_name
+   AND rc.constraint_schema = tc.table_schema
+WHERE tc.table_schema = 'public'
+  AND tc.constraint_type = 'FOREIGN KEY'
+ORDER BY tc.table_name, kcu.column_name;
+
+-- 5. Restrições CHECK (domínios válidos de negócio)
+SELECT
+    cls.relname AS table_name,
+    con.conname AS constraint_name,
+    pg_get_constraintdef(con.oid) AS check_definition
+FROM pg_constraint con
+JOIN pg_class cls ON cls.oid = con.conrelid
+JOIN pg_namespace nsp ON nsp.oid = cls.relnamespace
+WHERE nsp.nspname = 'public'
+  AND con.contype = 'c'
+ORDER BY cls.relname, con.conname;
+
+-- 6. Status de Row Level Security (RLS) e políticas ativas
+SELECT
+    tablename AS table_name,
+    policyname AS policy_name,
+    roles,
+    cmd,
+    qual AS using_expr,
+    with_check
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
+
+-- 7. Volumetria exata por tabela (pós-seed)
+SELECT 'kitchen_units' AS table_name, COUNT(*) AS row_count FROM kitchen_units
+UNION ALL SELECT 'ingredients', COUNT(*) FROM ingredients
+UNION ALL SELECT 'technical_sheets', COUNT(*) FROM technical_sheets
+UNION ALL SELECT 'daily_menu_plans', COUNT(*) FROM daily_menu_plans
+UNION ALL SELECT 'waste_records', COUNT(*) FROM waste_records
+UNION ALL SELECT 'hot_box_deliveries', COUNT(*) FROM hot_box_deliveries
+UNION ALL SELECT 'proposal_quotes', COUNT(*) FROM proposal_quotes
+UNION ALL SELECT 'tenant_configs', COUNT(*) FROM tenant_configs
+UNION ALL SELECT 'app_users', COUNT(*) FROM app_users
+UNION ALL SELECT 'temperature_logs', COUNT(*) FROM temperature_logs
+UNION ALL SELECT 'stock_movements', COUNT(*) FROM stock_movements
+UNION ALL SELECT 'kds_dish_status', COUNT(*) FROM kds_dish_status
+UNION ALL SELECT 'system_heartbeat', COUNT(*) FROM system_heartbeat
+ORDER BY table_name;
